@@ -28,6 +28,19 @@ claude    # or your harness of choice
   so every later project reuses pnpm's cache instead of downloading again.
 - adds the Claude Code hooks and a `CLAUDE.md` block. (`AGENTS.md` in other harnesses)
 
+When setup finishes, add your API keys (optional; free local tools are used without them):
+
+```bash
+cp .env.example .env    # then open .env and fill in the keys
+```
+
+| Variable | Used for |
+| --- | --- |
+| `ELEVENLABS_API_KEY` | ElevenLabs voiceover, sound effects, music |
+| `GEMINI_API_KEY` | Gemini TTS voiceover, Lyria music |
+
+`.env` is gitignored. The agent loads it only inside the commands that need it, never prints it.
+
 Other harnesses: install with their `-a <agent>` id and the setup skill passes it on.
 
 > !NOTE

@@ -34,6 +34,16 @@
         ]
       },
       {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/promo-creator/hooks/promo_hooks.py\" pre-read",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {

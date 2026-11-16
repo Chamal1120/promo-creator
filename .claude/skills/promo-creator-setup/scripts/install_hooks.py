@@ -20,7 +20,7 @@ OURS = ("promo_hooks.py", "video_hooks.py")
 SPEC = {
     "SessionStart": [(None, "session", 20)],
     "UserPromptSubmit": [(None, "prompt", 10)],
-    "PreToolUse": [("Bash", "pre-bash", 10), ("Write|Edit", "pre-write", 10)],
+    "PreToolUse": [("Bash", "pre-bash", 10), ("Read", "pre-read", 10), ("Write|Edit", "pre-write", 10)],
     "PostToolUse": [("Write|Edit", "post-write", 30), ("Bash", "post-bash", 60)],
 }
 

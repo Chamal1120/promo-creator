@@ -206,6 +206,14 @@ else
   ok "studio instructions already in $doc"
 fi
 
+# API keys: .env.example to copy, and .env kept out of git.
+[[ -f .env.example ]] || { cp "$HERE/../templates/env.example" .env.example; ok ".env.example"; }
+if ! grep -qxF ".env" .gitignore 2>/dev/null; then
+  [[ -s .gitignore ]] && echo >> .gitignore
+  printf '# promo-creator: API keys stay local\n.env\n.env.*\n!.env.example\n' >> .gitignore
+  ok ".env added to .gitignore"
+fi
+
 # Put ~/.local/bin and PNPM_HOME on PATH for new shells when tools were installed there.
 if (( install_tools )); then
   for rc in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
@@ -225,6 +233,18 @@ fi
 mkdir -p .claude/state
 { date -Iseconds; echo "node=$(node -v) pnpm=$(pnpm -v) remotion=$REMOTION_VERSION hyperframes=$HYPERFRAMES_VERSION"; } > "$MARKER"
 echo "setup: ready. Wrote $MARKER."
+missing_keys=()
+for k in ELEVENLABS_API_KEY GEMINI_API_KEY; do
+  grep -qE "^$k=.+" .env 2>/dev/null || missing_keys+=("$k")
+done
+if (( ${#missing_keys[@]} )); then
+  echo
+  echo "API keys: tell the person to add them (optional; free local tools are used without them):"
+  [[ -f .env ]] || echo "  1. In this folder run: cp .env.example .env"
+  echo "  $([[ -f .env ]] && echo 1 || echo 2). Open .env in an editor and fill in: ${missing_keys[*]}"
+  echo "     (ElevenLabs: voiceover, SFX, music. Gemini: TTS voiceover, Lyria music.)"
+  echo "  Keys go in the file only, never in the chat. .env is gitignored."
+fi
 if (( restart )); then
   echo "Restart the harness (new skills or PATH changes are only seen by a new session), then ask for a video."
   exit 2

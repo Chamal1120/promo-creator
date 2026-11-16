@@ -54,7 +54,15 @@ The script is `scripts/setup.sh` in this skill's folder (usually
      `CLAUDE.md`. Other harnesses: adds the studio block to `AGENTS.md` (no hooks).
    - writes `.claude/state/.prereq-met`.
 
-4. **Read the exit code**:
+   - adds `.env.example` and makes sure `.gitignore` covers `.env`
+
+4. **Tell the person about API keys.** If the output ends with an "API keys" block, pass it
+   on in plain words: copy `.env.example` to `.env` (`cp .env.example .env`), open `.env` in
+   an editor and fill in `ELEVENLABS_API_KEY` and/or `GEMINI_API_KEY`. Both are optional,
+   because free local tools are used without them. Keys go in the file, never in the chat.
+   Never read or print `.env` yourself.
+
+5. **Read the exit code**:
    - `0`: ready. Continue with the person's video request (load `promo-creator`).
    - `2`: ready, but new skills or PATH changes need a fresh session. Ask the person to
      restart the harness (and open a new terminal if tools were installed), then ask for

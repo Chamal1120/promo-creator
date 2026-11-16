@@ -5,6 +5,7 @@ Subcommands (stdin = hook JSON payload):
   session      SessionStart  -> compact studio status as context (saves exploration tokens)
   pre-bash     PreToolUse    -> guard raw-footage / final exports, enforce render spec,
                                 quiet ffmpeg/ffprobe, send render logs to a file + tail
+  pre-read     PreToolUse    -> keep .env (API keys) out of the transcript
   pre-write    PreToolUse    -> block edits to raw-footage, overwrites in exports/final,
                                 and hand edits to generated token files
   post-write   PostToolUse   -> validate production.json, regenerate tokens from tokens.json
@@ -34,6 +35,17 @@ FINALIZE_RE = re.compile(r"\b(finali[sz]e|finali[sz]ed|approve(d)?\s+(for|the)\s
                          r"go\s+final|ship\s+it)\b", re.I)
 sys.path.insert(0, str(PROD.parent))
 
+ENV_PATH = r"(?:\S*/)?\.env(?:\.(?!example\b)[\w-]+)?(?![\w.-])"
+# a command that would put .env values on screen or into another file
+ENV_READ = re.compile(r"(^|[;&|(]\s*|\n\s*|\b(sudo|xargs)\s+)(cat|less|more|head|tail|bat|nl|tac|strings|xxd|od|hexdump|"
+                      r"base64|sed|awk|cut|sort|uniq|diff|cp|mv|rsync|scp|tee|open|code|vim?|nano)\b[^;&|\n]*?"
+                      r"(?<![\w.-])" + ENV_PATH + "|"
+                      r"\bgrep\b(?![^;&|\n]*\s-\w*[qcl])[^;&|\n]*?(?<![\w.-])" + ENV_PATH + "|"
+                      r"(?<![\w./-])(printenv|env)\s*($|[;&|])|(?<![\w./-])set\s*($|[;&|])|"
+                      r"\b(echo|printf)\b[^;&|\n]*\$\{?\w*(KEY|TOKEN|SECRET)", re.I)
+ENV_MSG = (".env holds the person's API keys: never print, read or copy its values. Load it inside the command "
+           "that needs it: `set -a; . ./.env; set +a; <command>` (media-use scripts load it themselves). "
+           "To check a key exists: `grep -c '^ELEVENLABS_API_KEY=.' .env`.")
 SIMPLE_CMD = re.compile(r"^[^;&|`<>]*$")             # no chaining, pipes, redirects, substitution
 SUBST = re.compile(r"\$\(")
 QUIET_SKIP = re.compile(r"(-loglevel|\s-v\s|-report|ebur128|print_format|volumedetect|silencedetect|"
@@ -152,7 +164,14 @@ def pre_bash(payload: dict) -> None:
             deny("Do not run ffmpeg -y onto raw-footage/ or exports/final/. Write a new versioned file "
                  "(production.py assemble picks the next vN) or use -n.")
 
-    # 2. pnpm only (npx is allowed just for the official skill installers)
+    # 2. API keys in .env stay out of the transcript
+    scan = re.sub(r"'[^']*'", "''", c)  # sed/awk scripts and quoted text are not file reads
+    scan = re.sub(r"(^|\s)#[^\n]*", "", scan)  # shell comments
+    scan = re.sub(r"\b(cp|mv)\s+\S*\.env\.example\s+\S*\.env\b", "", scan)  # making .env from the example
+    if ENV_READ.search(scan):
+        deny(ENV_MSG)
+
+    # 2b. pnpm only (npx is allowed just for the official skill installers)
     for seg in re.split(r"&&|\|\||;|\||\n", c):
         s = seg.strip()
         if re.match(r"^npx\s", s) and not re.match(r"^npx\s+(-y\s+|--yes\s+)?skills(@\S+)?\s", s):
@@ -218,6 +237,14 @@ def pre_bash(payload: dict) -> None:
             "permissionDecision": "allow",
             "permissionDecisionReason": "promo-studio: normalized media command (quiet flags / log capture)",
             "updatedInput": updated}})
+
+
+# --------------------------------------------------------------------------- PreToolUse Read
+
+def pre_read(payload: dict) -> None:
+    name = Path(payload.get("tool_input", {}).get("file_path", "")).name
+    if name == ".env" or (name.startswith(".env.") and name != ".env.example"):
+        deny(ENV_MSG)
 
 
 # --------------------------------------------------------------------------- PreToolUse Write|Edit
@@ -319,7 +346,7 @@ def main() -> None:
         payload = json.load(sys.stdin) if not sys.stdin.isatty() else {}
     except json.JSONDecodeError:
         payload = {}
-    handlers = {"session": session, "pre-bash": pre_bash, "pre-write": pre_write,
+    handlers = {"session": session, "pre-bash": pre_bash, "pre-read": pre_read, "pre-write": pre_write,
                 "post-write": post_write, "post-bash": post_bash, "prompt": prompt}
     try:
         handlers[sys.argv[1]](payload)

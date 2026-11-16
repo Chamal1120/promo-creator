@@ -1,6 +1,7 @@
 # ---- Secrets ---------------------------------------------------------------
 .env
 .env.*
+!.env.example
 
 # ---- Framework skills (installed by promo-creator-setup with `npx skills add`)
 # Only the promo-creator skills are committed.

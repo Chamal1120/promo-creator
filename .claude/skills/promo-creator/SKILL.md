@@ -46,6 +46,26 @@ your harness installed the skill elsewhere (for example `.agents/skills/`), use 
 `~/.config/promo-creator/pins.sh`. Never `npm`, never `npx` (the setup skill's
 `npx skills add` is the only exception), never `@latest`.
 
+## API keys (`.env`)
+
+Paid generation uses keys the person puts in `.env` at the studio root (copied from
+`.env.example`; `.env` is gitignored):
+
+| Variable | Used for |
+| --- | --- |
+| `ELEVENLABS_API_KEY` | ElevenLabs voiceover (TTS), sound effects, music |
+| `GEMINI_API_KEY` | Gemini TTS voiceover, Lyria music |
+
+- `media-use` audio scripts load `.env` themselves (they search up from the project folder),
+  so call them normally and they pick ElevenLabs / Gemini when the key is set.
+- For your own calls (curl to an API, the Remotion voiceover guide), load the file inside the
+  same command: `set -a; . ./.env; set +a; <command>`. Reference keys only as `$VAR`.
+- Never print, read, `cat`, `echo` or copy key values, never write them into project files,
+  logs or code, and never ask the person to paste a key into the chat. Check a key exists
+  with `grep -c '^ELEVENLABS_API_KEY=.' .env`.
+- Key missing: say which variable to add to `.env` (from `.env.example`) and offer the free
+  local alternative from `media-use` meanwhile.
+
 Detailed references in this skill:
 
 - `references/brief.md` — the creative-brief intake (taste, key lines, product facts)
@@ -306,6 +326,7 @@ render/install output to `.claude/logs/` and read only its tail.
 | --- | --- | --- |
 | SessionStart | Injects a compact studio status: projects, scene render state (ok/missing/stale), latest exports | Do not explore the tree to find out where things stand |
 | PreToolUse Bash | Adds `-hide_banner -loglevel warning -nostats` to plain `ffmpeg` and `-v error` to `ffprobe`. Sends `remotion/hyperframes render`, `create-video` and `pnpm install/add` (or `npm i`) output to `.claude/logs/*.log` and shows only the last 25 lines. Adds `--skip-skills` to `hyperframes init` | Write commands normally. Open the log file only when the tail shows a failure |
+| PreToolUse Bash, Read | Denies commands or reads that would show `.env` values (`cat .env`, `echo $…_KEY`, `printenv`); sourcing it inside a command is allowed | Load keys with `set -a; . ./.env; set +a; <command>` |
 | PreToolUse Bash | Denies `npx` (except `npx skills add`) and `npm install`, preview renders without preview flags, master renders (`renders/`) before `APPROVED.md` exists or without spec flags, shell writes of `APPROVED.md`, `rm`/`mv` in `raw-footage/`, and `ffmpeg -y` onto raw-footage or final exports | A denial message gives the corrected command, so use it |
 | UserPromptSubmit | Records when the person's latest message says "finalize"; any later message clears it | Only then can `APPROVED.md` be written |
 | PreToolUse Write/Edit | Denies writes in `raw-footage/`, overwrites in `exports/final/`, edits to generated token files, and `APPROVED.md` without a recorded "finalize" | Edit `tokens.json` instead; never self-approve |
