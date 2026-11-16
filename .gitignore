@@ -1,0 +1,47 @@
+# ---- Secrets ---------------------------------------------------------------
+.env
+.env.*
+
+# ---- Framework skills (installed by promo-creator-setup with `npx skills add`)
+# Only the promo-creator skills are committed.
+.agents/
+skills-lock.json
+.claude/skills/*
+!.claude/skills/promo-creator/
+!.claude/skills/promo-creator-setup/
+
+# ---- Claude Code runtime state ----------------------------------------------
+.claude/logs/*
+.claude/state/*
+.claude/settings.local.json
+!.claude/logs/.gitkeep
+!.claude/state/.gitkeep
+
+# ---- Video work (client media and renders stay local) -----------------------
+# Folder skeleton is kept with .gitkeep files. Remove a block to track that content.
+projects/*
+!projects/.gitkeep
+exports/**
+!exports/*/
+!exports/**/.gitkeep
+raw-footage/**
+!raw-footage/*/
+!raw-footage/**/.gitkeep
+references/**
+!references/*/
+!references/**/.gitkeep
+
+# ---- Build / tooling --------------------------------------------------------
+node_modules/
+__pycache__/
+*.py[cod]
+.remotion/
+out/
+*.log
+
+# ---- OS / editor ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

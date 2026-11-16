@@ -1,0 +1,45 @@
+{
+  "title": "Product Launch Ad",
+  "slug": "product-ad",
+  "format": { "width": 1920, "height": 1080, "fps": 30, "pix_fmt": "yuv420p" },
+  "scenes": [
+    {
+      "id": "logo-intro",
+      "framework": "hyperframes",
+      "source": "hyperframes/compositions/logo-intro.html",
+      "render": "renders/01-logo-intro.mp4",
+      "duration": 4.0,
+      "notes": "GSAP logo build, ends on brand background"
+    },
+    {
+      "id": "ui-demo",
+      "framework": "hyperframes",
+      "source": "hyperframes/compositions/ui-demo.html",
+      "render": "renders/02-ui-demo.mp4",
+      "duration": 12.0,
+      "transition_in": { "type": "fade", "duration": 0.5 }
+    },
+    {
+      "id": "stats",
+      "framework": "remotion",
+      "source": ["remotion/src/scenes/Stats.tsx", "remotion/src/data/stats.json"],
+      "render": "renders/03-stats.mp4",
+      "duration": 8.0,
+      "transition_in": { "type": "slideleft", "duration": 0.5 }
+    },
+    {
+      "id": "outro",
+      "framework": "remotion",
+      "source": "remotion/src/scenes/Outro.tsx",
+      "render": "renders/04-outro.mp4",
+      "duration": 5.0
+    }
+  ],
+  "audio": [
+    { "id": "music", "file": "audio/music.mp3", "start": 0, "gain_db": -6, "fade_in": 0.5, "fade_out": 2.0, "duck_under": "vo" },
+    { "id": "vo", "file": "audio/vo.wav", "at_scene": "ui-demo", "offset": 0.3 },
+    { "id": "whoosh", "file": "audio/sfx/whoosh.wav", "at_scene": "stats", "offset": 0, "gain_db": -4 }
+  ],
+  "loudness": { "target_lufs": -14, "true_peak": -1, "lra": 11 },
+  "delivery": { "crf": 18, "preset": "slow", "audio_bitrate": "192k", "reencode_video": false }
+}
