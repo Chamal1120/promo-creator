@@ -46,7 +46,7 @@ Then by type:
 
 | Type | Ask for |
 | --- | --- |
-| Software / SaaS / app | Real UI screens or a URL to capture (`pnpm dlx hyperframes@<pinned> capture <url>`), the 1–3 flows to show, real numbers for stats scenes, logo files. |
+| Software / SaaS / app | Real UI screens or a URL to capture (`hyperframes capture <url>`), the 1–3 flows to show, real numbers for stats scenes, logo files. |
 | Physical product | Product photos/renders (angles, transparent PNGs), key specs, packaging, price/where to buy. |
 | Service / agency / local business | What the customer gets, process steps, results/case numbers, location, team or workplace footage, booking method. |
 | Event / launch | Date, time, place, speakers, registration link, countdown? |

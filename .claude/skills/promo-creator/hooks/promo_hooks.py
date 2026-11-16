@@ -176,7 +176,7 @@ def pre_bash(payload: dict) -> None:
         s = seg.strip()
         if re.match(r"^npx\s", s) and not re.match(r"^npx\s+(-y\s+|--yes\s+)?skills(@\S+)?\s", s):
             deny("Use pnpm, not npx: inside a project `pnpm exec <cli> ...` (hyperframes and remotion are pinned "
-                 "devDependencies; add one with scaffold.sh), elsewhere `pnpm dlx <pkg>@<pinned version> ...`. "
+                 "devDependencies; add one with scaffold.sh), elsewhere `hyperframes ...` (pinned per-user CLI) or `pnpm dlx <pkg>@<pinned version> ...`. "
                  "npx is only for `npx skills add`.")
         if re.match(r"^npm\s+(i|install|ci|add|exec|x|create|init)\b", s):
             deny("Use pnpm, not npm: `pnpm add -E --prefer-offline <pkg>@<version>` / `pnpm install --prefer-offline`.")

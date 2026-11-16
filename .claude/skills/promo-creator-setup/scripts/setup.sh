@@ -39,7 +39,7 @@ done
 ROOT="$(studio_root "$HERE")"
 cd "$ROOT" || exit 1
 MARKER=".claude/state/.prereq-met"
-LOCAL="$HOME/.local"; BIN="$LOCAL/bin"; SHARE="$LOCAL/share/promo-creator"
+LOCAL="$HOME/.local"; BIN="$LOCAL/bin"; SHARE="$PROMO_HOME"
 ORIG_PATH="$PATH"
 export PNPM_HOME="${PNPM_HOME:-$LOCAL/share/pnpm}"
 export PATH="$BIN:$PNPM_HOME:$PATH"
@@ -69,9 +69,15 @@ case "$(uname -m)" in x86_64|amd64) ARCH=x64 ;; aarch64|arm64) ARCH=arm64 ;; *) 
 python_ok() { has python3 && python3 -c "import sys; sys.exit(sys.version_info < tuple(map(int, '$MIN_PYTHON'.split('.'))))" 2>/dev/null; }
 node_ok()   { has node && (( $(node -p 'process.versions.node.split(".")[0]') >= MIN_NODE_MAJOR )); }
 
+ensure_uv() {
+  has uv && return
+  note "installing uv (into $BIN)"
+  fetch https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$BIN" UV_NO_MODIFY_PATH=1 sh >>"$LOG" 2>&1
+  hash -r
+}
 install_python() {
   note "installing Python 3.12 with uv (into $BIN)"
-  has uv || fetch https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$BIN" UV_NO_MODIFY_PATH=1 sh >>"$LOG" 2>&1
+  ensure_uv
   uv python install 3.12 >>"$LOG" 2>&1 && ln -sf "$(uv python find 3.12)" "$BIN/python3"
   restart=1
 }
@@ -134,7 +140,7 @@ for t in ffmpeg ffprobe; do has "$t" && ok "$t" || bad "$t not found"; done
 if (( ${#problems[@]} )) && (( ! install_tools )); then
   echo
   echo "setup: missing tools: ${need_tools[*]}. Ask the person, then re-run with --install-tools"
-  echo "  (user-level, no sudo: Python ~30 MB, FFmpeg ~40 MB, Chrome ~150 MB)."
+  echo "  (user-level, no sudo: Python ~30 MB, FFmpeg ~40 MB, Chrome ~150 MB; always: HyperFrames CLI ~60 MB, Python audio packages ~25 MB)."
   exit 1
 fi
 (( ${#problems[@]} )) && { echo; echo "setup: tools still missing (see ${LOG#$ROOT/})."; exit 1; }
@@ -155,14 +161,37 @@ fi
 [[ -n "${REMOTION_VERSION:-}" && -n "${HYPERFRAMES_VERSION:-}" ]] &&
   ok "pins: remotion $REMOTION_VERSION, hyperframes $HYPERFRAMES_VERSION ($PINS_FILE)"
 
-# ------------------------------------------------------------------ Chrome for HyperFrames
+# ------------------------------------------------------------------ HyperFrames CLI (once per user)
+# The pinned CLI lives in $PROMO_HOME/hyperframes (from the pnpm store) and is on PATH as
+# `hyperframes`. Sign-in (`hyperframes auth login`) is stored per user in ~/.hyperframes, so it
+# covers this copy and every project's copy.
+hf_version() { node -p "require('$PROMO_HF_CLI/node_modules/hyperframes/package.json').version" 2>/dev/null; }
 if [[ -n "${HYPERFRAMES_VERSION:-}" ]]; then
-  if chrome="$(pnpm dlx "hyperframes@$HYPERFRAMES_VERSION" browser path 2>>"$LOG" | tail -1)" && [[ -x "$chrome" ]]; then
+  if [[ "$(hf_version)" != "$HYPERFRAMES_VERSION" ]]; then
+    note "installing hyperframes@$HYPERFRAMES_VERSION into $PROMO_HF_CLI (pnpm)"
+    mkdir -p "$PROMO_HF_CLI"
+    [[ -f "$PROMO_HF_CLI/package.json" ]] || echo '{ "name": "promo-creator-hyperframes", "private": true }' > "$PROMO_HF_CLI/package.json"
+    (cd "$PROMO_HF_CLI" && pnpm add -E --prefer-offline "hyperframes@$HYPERFRAMES_VERSION") >>"$LOG" 2>&1
+  fi
+  if [[ "$(hf_version)" == "$HYPERFRAMES_VERSION" ]]; then
+    entry="$(cd "$PROMO_HF_CLI/node_modules/hyperframes" && node -p "const b=require('./package.json').bin; require('path').resolve(typeof b=='string'?b:b.hyperframes)")"
+    mkdir -p "$BIN"
+    printf '#!/bin/sh\n# promo-creator: pinned HyperFrames CLI (%s)\nexec node "%s" "$@"\n' "$HYPERFRAMES_VERSION" "$entry" > "$BIN/hyperframes"
+    chmod +x "$BIN/hyperframes"
+    ok "hyperframes $HYPERFRAMES_VERSION CLI (on PATH as \`hyperframes\`)"
+  else
+    bad "could not install hyperframes@$HYPERFRAMES_VERSION (see ${LOG#$ROOT/})"
+  fi
+fi
+
+# ------------------------------------------------------------------ Chrome for HyperFrames
+if [[ -x "$BIN/hyperframes" ]]; then
+  if chrome="$("$BIN/hyperframes" browser path 2>>"$LOG" | tail -1)" && [[ -x "$chrome" ]]; then
     ok "chrome (hyperframes)"
   elif (( install_tools )); then
     note "downloading HyperFrames' pinned Chrome (~150 MB, user cache)"
-    pnpm dlx "hyperframes@$HYPERFRAMES_VERSION" browser ensure >>"$LOG" 2>&1
-    chrome="$(pnpm dlx "hyperframes@$HYPERFRAMES_VERSION" browser path 2>>"$LOG" | tail -1)"
+    "$BIN/hyperframes" browser ensure >>"$LOG" 2>&1
+    chrome="$("$BIN/hyperframes" browser path 2>>"$LOG" | tail -1)"
     [[ -x "$chrome" ]] && ok "chrome (hyperframes)" || bad "chrome download failed (see ${LOG#$ROOT/})"
   else
     bad "chrome for HyperFrames missing (re-run with --install-tools)"
@@ -172,6 +201,26 @@ if [[ -n "${HYPERFRAMES_VERSION:-}" ]]; then
     [[ -n "$libs" ]] && bad "Chrome needs system libraries (needs root, the person's call): $libs"
   fi
 fi
+
+# ------------------------------------------------------------------ Python audio packages
+# ElevenLabs TTS and Gemini Lyria run through Python. A private venv avoids PEP 668
+# ("externally managed") system Pythons; media-use finds it through HYPERFRAMES_PYTHON,
+# which scripts/voiceover.py sets.
+py_pkgs_ok() { "$PROMO_VENV/bin/python" -c "import elevenlabs, google.genai, dotenv" 2>/dev/null; }
+if ! py_pkgs_ok; then
+  note "installing Python audio packages (elevenlabs, google-genai) into $PROMO_VENV"
+  if [[ ! -x "$PROMO_VENV/bin/python" ]]; then
+    python3 -m venv "$PROMO_VENV" >>"$LOG" 2>&1 || { rm -rf "$PROMO_VENV"; (( install_tools )) && ensure_uv; }
+    [[ -x "$PROMO_VENV/bin/python" ]] || { has uv && uv venv -q --python python3 "$PROMO_VENV" >>"$LOG" 2>&1; }
+  fi
+  if [[ -x "$PROMO_VENV/bin/pip" ]]; then
+    "$PROMO_VENV/bin/python" -m pip install -q "${PY_AUDIO_PKGS[@]}" >>"$LOG" 2>&1
+  elif has uv && [[ -x "$PROMO_VENV/bin/python" ]]; then
+    uv pip install -q --python "$PROMO_VENV/bin/python" "${PY_AUDIO_PKGS[@]}" >>"$LOG" 2>&1
+  fi
+fi
+if py_pkgs_ok; then ok "python audio packages ($PROMO_VENV)"
+else bad "python audio packages missing: python3 -m venv failed (Debian/Ubuntu need python3-venv) and uv is not installed. Re-run with --install-tools to use uv"; fi
 
 # ------------------------------------------------------------------ studio folder
 for d in "${STUDIO_DIRS[@]}"; do mkdir -p "$d"; done

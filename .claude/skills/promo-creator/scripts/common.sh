@@ -21,6 +21,12 @@ STUDIO_DIRS=(projects raw-footage/videos raw-footage/audio raw-footage/images
              exports/drafts exports/final .claude/logs .claude/state)
 
 PINS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/promo-creator/pins.sh"
+# Per-user installs shared by every studio: the pinned HyperFrames CLI and a Python venv for
+# the audio providers (ElevenLabs TTS, Gemini Lyria).
+PROMO_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/promo-creator"
+PROMO_HF_CLI="$PROMO_HOME/hyperframes"
+PROMO_VENV="$PROMO_HOME/venv"
+PY_AUDIO_PKGS=(elevenlabs google-genai python-dotenv)
 # shellcheck disable=SC1090
 [[ -f "$PINS_FILE" ]] && source "$PINS_FILE"
 

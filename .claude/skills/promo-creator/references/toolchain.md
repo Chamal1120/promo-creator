@@ -25,7 +25,7 @@ Rules:
 - Fresh install of an existing project: `pnpm install --prefer-offline`.
 - Run CLIs inside the project with `pnpm exec`: `pnpm exec remotion studio|still|render …`,
   `pnpm exec hyperframes check|preview|render|snapshot …` (flags: `references/render-spec.md`),
-  `pnpm exec tsc --noEmit`. Outside a project: `pnpm dlx hyperframes@<HYPERFRAMES_VERSION> …`.
+  `pnpm exec tsc --noEmit`. Outside a project: `hyperframes …` (the pinned per-user CLI that setup puts on PATH).
 
 ## Upgrading
 

@@ -66,6 +66,39 @@ Paid generation uses keys the person puts in `.env` at the studio root (copied f
 - Key missing: say which variable to add to `.env` (from `.env.example`) and offer the free
   local alternative from `media-use` meanwhile.
 
+## Voiceover
+
+Use the wrapper. It loads the keys, picks the provider, uses this user's Python venv and
+pinned HyperFrames CLI, and saves stems for the FFmpeg mix:
+
+```bash
+P=.claude/skills/promo-creator/scripts/voiceover.py
+python3 $P <slug> --line hook="Your mornings, sorted." --line cta="Download Akurata today."
+python3 $P <slug> --lines vo.json --provider gemini --voice Kore --style "Warm, unhurried."
+python3 $P <slug> --script vo.txt --provider elevenlabs --voice <voice_id>
+```
+
+- Output: `projects/<slug>/audio/vo/<id>.wav` and `audio/vo/voiceover.json` (durations, word
+  timings for captions). Line ids match the scene or line ids in `PLAN.md`.
+- `--provider auto` (default): ElevenLabs if its key is set, else Gemini, else local Kokoro.
+  Ask the person which voice they want once per project, record it in `BRIEF.md`, and pass
+  the same `--provider/--voice/--style` on every regeneration.
+- Regenerate only the lines that changed (same ids overwrite their stems).
+
+**Overrides for `media-use`**, which is written for standalone HyperFrames use:
+
+- Skip its HeyGen sign-in preflight when `ELEVENLABS_API_KEY` or `GEMINI_API_KEY` is set or
+  the person already chose a provider; just use the wrapper. Mention HeyGen only if the
+  person asks about it.
+- Where it says `npx hyperframes …`, run `hyperframes …` (this user's pinned CLI, on PATH),
+  or `pnpm exec hyperframes …` inside `projects/<slug>/hyperframes/`. `npx` is blocked.
+- Running `media-use/audio/scripts/audio.mjs` directly (music, SFX): source
+  `scripts/media-env.sh` first in the same command
+  (`. .claude/skills/promo-creator/scripts/media-env.sh; node …/audio.mjs …`). It sets the
+  venv and CLI paths; keys come from `.env` automatically.
+- HeyGen sign-in (`hyperframes auth login`) is per user (`~/.hyperframes/`), not per run or
+  per copy of the CLI. One sign-in covers every project.
+
 Detailed references in this skill:
 
 - `references/brief.md` — the creative-brief intake (taste, key lines, product facts)

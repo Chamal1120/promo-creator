@@ -1,6 +1,6 @@
 # Promo-Creator
 
-An agent skill for creating promo videos using motion-graphics with the help of **Remotion**, **Hyperframes** and **ffmpeg**.
+An agent skill for creating promo videos using motion-graphics with the help of **Remotion**, **Hyperframes**, **ffmpeg**, **ElevanLabs** and **Gemini TTS Models**.
 Your harness (agent) acts as the production orchestrator. It collects a creative brief, splits the video into scenes,
 picks the best framework for each scene, renders the scenes to a shared spec, and assembles and masters the final cut with ffmpeg.
 
@@ -28,7 +28,7 @@ claude    # or your harness of choice
   so every later project reuses pnpm's cache instead of downloading again.
 - adds the Claude Code hooks and a `CLAUDE.md` block. (`AGENTS.md` in other harnesses)
 
-When setup finishes, add your API keys (optional; free local tools are used without them):
+04. When setup finishes, add your API keys for voiceover generation. (optional; free local tools can be used without them):
 
 ```bash
 cp .env.example .env    # then open .env and fill in the keys
@@ -41,9 +41,20 @@ cp .env.example .env    # then open .env and fill in the keys
 
 `.env` is gitignored. The agent loads it only inside the commands that need it, never prints it.
 
+### Voiceover
+
+```bash
+python3 .claude/skills/promo-creator/scripts/voiceover.py <slug> --line hook="Your mornings, sorted."
+python3 .claude/skills/promo-creator/scripts/voiceover.py <slug> --script vo.txt --provider gemini --voice Kore
+```
+
+Picks ElevenLabs, then Gemini, then the free local Kokoro voice, depending on which keys are set.
+Writes `projects/<slug>/audio/vo/<id>.wav` plus `voiceover.json` with durations and word timings.
+HeyGen voices are optional: sign in once with `hyperframes auth login` (stored per user).
+
 Other harnesses: install with their `-a <agent>` id and the setup skill passes it on.
 
-> !NOTE
+> ![NOTE]
 > Windows users -> use WSL.
 
 ## Layout

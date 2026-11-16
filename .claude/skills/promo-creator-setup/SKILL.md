@@ -33,6 +33,11 @@ The script is `scripts/setup.sh` in this skill's folder (usually
 
    Only list what is actually missing. Wait for a yes.
 
+   Every setup run also downloads, once per user (reused by later studios): the Remotion and
+   HyperFrames skills, the pinned HyperFrames CLI via pnpm (~60 MB with dependencies) and the
+   Python audio packages for ElevenLabs/Gemini (~25 MB). Mention these in the same message
+   when the person is on a metered connection.
+
 3. **Set up**:
    ```bash
    bash .claude/skills/promo-creator-setup/scripts/setup.sh                    # tools already there
@@ -50,11 +55,15 @@ The script is `scripts/setup.sh` in this skill's folder (usually
      `~/.config/promo-creator/pins.sh`. Versions already pinned there are reused, so pnpm's
      cache serves every later project without downloading again. Never change a pin unless
      the person asks to upgrade.
+   - installs the pinned HyperFrames CLI once per user in `~/.local/share/promo-creator/hyperframes`
+     (pnpm) and puts it on PATH as `hyperframes`; checks HyperFrames' Chrome with it
+   - creates a Python venv in `~/.local/share/promo-creator/venv` with `elevenlabs`,
+     `google-genai` and `python-dotenv` (ElevenLabs voiceover, Gemini Lyria music), avoiding
+     "externally managed" system Pythons
    - Claude Code: merges the hooks into `.claude/settings.json` and adds the studio block to
      `CLAUDE.md`. Other harnesses: adds the studio block to `AGENTS.md` (no hooks).
-   - writes `.claude/state/.prereq-met`.
-
    - adds `.env.example` and makes sure `.gitignore` covers `.env`
+   - writes `.claude/state/.prereq-met`.
 
 4. **Tell the person about API keys.** If the output ends with an "API keys" block, pass it
    on in plain words: copy `.env.example` to `.env` (`cp .env.example .env`), open `.env` in
@@ -80,3 +89,9 @@ or re-check.
 - Use `sudo`, `npm install` or `npx` (except `npx skills add`).
 - Change existing version pins, other hooks, or your text outside its marked block in
   `CLAUDE.md` / `AGENTS.md`.
+
+## HeyGen (optional)
+
+HeyGen voices are optional; ElevenLabs, Gemini or local Kokoro are enough. If the person
+wants HeyGen, they sign in once with `hyperframes auth login`. The login is stored per user
+in `~/.hyperframes/`, so it works for every studio, project and CLI copy, with no sign-in per run.
